@@ -1,0 +1,96 @@
+---
+title: "Pulizter Prizes"
+output: html_document
+---
+
+```{r include=FALSE}
+library(fivethirtyeight)
+```
+
+
+```{r include=FALSE}
+library(reticulate)
+
+#conda_install("r-reticulate", "pandas")
+
+use_virtualenv("r-reticulate")
+
+use_python("/Users/cameronreaves/anaconda/envs/r-reticulate/bin/python")
+# import SciPy (it will be automatically discovered in "r-reticulate")
+pandas <- import("pandas")
+```
+
+Using a dataset from the R package FiveThirtyEight, I will explore how to use Python within the RStudio IDE. 
+
+```{python include = FALSE}
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy as sc
+import pandas as pd
+import seaborn as sns
+```
+
+```{r include=FALSE}
+
+# circulation in 2004, 2014, then the percentage change btw years, num of finalists + combined 
+
+pulitzer <- fivethirtyeight::pulitzer
+```
+
+```{python include = FALSE}
+py_pulitzer = r.pulitzer
+
+py_pulitzer_top = py_pulitzer.sort_values("num_finals1990_2014", ascending=False).head(10)
+
+sns.set(style="darkgrid")
+
+chart = sns.barplot("newspaper", "num_finals1990_2014", data = py_pulitzer_top)
+
+chart.set_xticklabels(chart.get_xticklabels(),rotation=65)
+
+```
+
+
+```{python include = FALSE}
+low_high = py_pulitzer_top["num_finals1990_2014"][py_pulitzer_top["newspaper"].isin(["New York Times", "Newsday"])].values
+
+pct = low_high[0] / low_high[1]
+
+pct
+```
+
+The first plot that I made aggregated the number of Pulitzer Prize awards by newspaper company between the years 1990 and 2014 using a seaborn.barplot(). It is no surprise that the Top Ten Newspapers by Pulitzer Prize are also some of the most famous in the country. However, there is a large disparity even within the Top Ten. The New York Times has 6.5 times as many Pulitzer Prizes over this period as Newsday. 
+
+```{python echo = FALSE}
+plt.title("The Top Ten Newspapers by  Pulitzer")
+plt.xlabel("Newpapers")
+plt.ylabel("Count")
+plt.tight_layout()
+plt.show()
+```
+
+For my second plot, I want to visualize the change in circulation from 2004 to 2013 for the Top Ten newspapers by Pulitzer Prize. To do this, I needed to pivot the data from wide to long format, using the pandas.melt function. Now, I am able to use the seaborn.pointplot() to graph for each newspaper the delta circulation. 
+
+Just by looking at this visualization, it appears that most of the Top Ten newspapers' circulation decreased from 2004 to 2013. Only the New York Times and the Wall Street Journal increased its circulation (for top ten). 
+
+```{python}
+py_pulitzer_top_circ = py_pulitzer_top[["newspaper", "circ2004", "circ2013"]]
+
+py_pulitzer_top_circ = pd.melt(py_pulitzer_top_circ, id_vars=["newspaper"], 
+value_vars=["circ2004", "circ2013"],var_name='year', value_name='circ')
+```
+
+```{python}
+sns.catplot(x="year", y="circ", col="newspaper", col_wrap=5,data=py_pulitzer_top_circ, kind="point")
+plt.tight_layout()
+plt.show()
+```
+
+```{python include = FALSE}
+py_pulitzer["pctchg_circ"].describe()
+py_pulitzer["pctchg_circ"].mean()
+```
+
+Using summary statistics functions from the pandas library, we see that the mean percent change in circulation from 2004 to 2014 was -29.2 %, 25th percentile was -40.8% and the 75th percentile was -20%. In other words, the newspaper industry as a whole has seen decreased circulation over this period. The New York Times and The Wall Street Journal are outliers not only in the subset of the Top Ten newspapers, but also for the rest of the data. 
+
+
